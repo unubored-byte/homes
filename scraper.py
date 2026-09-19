@@ -25,10 +25,17 @@ def load_previous():
     return pd.DataFrame(columns=["name", "address"])
 
 def save(df):
-    os.makedirs("data", exist_ok=True)
+    # ディレクトリが存在していてもエラーにならないようにする
+    if not os.path.isdir("data"):
+        os.makedirs("data", exist_ok=True)
+
     df.to_csv("data/stores.csv", index=False)
 
+
 def diff(new, old):
+    if not os.path.isdir("data"):
+        os.makedirs("data", exist_ok=True)
+
     merged = new.merge(old, how="outer", indicator=True)
     added = merged[merged["_merge"] == "left_only"]
     removed = merged[merged["_merge"] == "right_only"]
@@ -39,6 +46,7 @@ def diff(new, old):
     ])
 
     diff_df.to_csv("data/diff.csv", index=False)
+
 
 def main():
     new = scrape()
