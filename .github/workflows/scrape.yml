@@ -69,7 +69,7 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "Homes 店舗一覧の差分通知"
-          to: "your-email@example.com"
+          to: "sharaku13@me.com"
           from: "GitHub Actions <your-email@example.com>"
           body: ${{ steps.mail_body.outputs.body }}
           attachments: data/diff.csv
