@@ -18,23 +18,27 @@ def scrape():
 
     return pd.DataFrame(stores)
 
+def ensure_data_dir():
+    # data が「フォルダ」かどうかを確認する
+    if os.path.exists("data") and not os.path.isdir("data"):
+        # data がファイルとして存在している場合 → 削除してフォルダを作る
+        os.remove("data")
+    if not os.path.isdir("data"):
+        os.makedirs("data", exist_ok=True)
+
 def load_previous():
+    ensure_data_dir()
     path = "data/stores.csv"
     if os.path.exists(path):
         return pd.read_csv(path)
     return pd.DataFrame(columns=["name", "address"])
 
 def save(df):
-    # ディレクトリが存在していてもエラーにならないようにする
-    if not os.path.isdir("data"):
-        os.makedirs("data", exist_ok=True)
-
+    ensure_data_dir()
     df.to_csv("data/stores.csv", index=False)
 
-
 def diff(new, old):
-    if not os.path.isdir("data"):
-        os.makedirs("data", exist_ok=True)
+    ensure_data_dir()
 
     merged = new.merge(old, how="outer", indicator=True)
     added = merged[merged["_merge"] == "left_only"]
@@ -46,7 +50,6 @@ def diff(new, old):
     ])
 
     diff_df.to_csv("data/diff.csv", index=False)
-
 
 def main():
     new = scrape()
