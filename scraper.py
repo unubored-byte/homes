@@ -11,17 +11,19 @@ def scrape():
 
     stores = []
 
-    for item in soup.select(".cassetteitem"):
-        name = item.select_one(".cassetteitem_content-title").get_text(strip=True)
-        address = item.select_one(".cassetteitem_detail-col").get_text(strip=True)
-        stores.append({"name": name, "address": address})
+    for item in soup.select(".shopCassette"):
+        name = item.select_one(".shopCassette__name")
+        address = item.select_one(".shopCassette__address")
+
+        stores.append({
+            "name": name.get_text(strip=True) if name else "",
+            "address": address.get_text(strip=True) if address else ""
+        })
 
     return pd.DataFrame(stores)
 
 def ensure_data_dir():
-    # data が「フォルダ」かどうかを確認する
     if os.path.exists("data") and not os.path.isdir("data"):
-        # data がファイルとして存在している場合 → 削除してフォルダを作る
         os.remove("data")
     if not os.path.isdir("data"):
         os.makedirs("data", exist_ok=True)
@@ -30,7 +32,13 @@ def load_previous():
     ensure_data_dir()
     path = "data/stores.csv"
     if os.path.exists(path):
-        return pd.read_csv(path)
+        try:
+            df = pd.read_csv(path)
+            if set(df.columns) != {"name", "address"}:
+                return pd.DataFrame(columns=["name", "address"])
+            return df
+        except:
+            return pd.DataFrame(columns=["name", "address"])
     return pd.DataFrame(columns=["name", "address"])
 
 def save(df):
