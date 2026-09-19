@@ -2,7 +2,7 @@ name: Scrape Homes Tokyo Stores
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # 毎日0時に実行
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
@@ -13,7 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # data フォルダを必ずフォルダとして作り直す（壊れ対策）
       - name: Fix data directory
         run: |
           if [ -e data ]; then
@@ -28,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 pandas playwright
+          pip install pandas playwright
           playwright install --with-deps
 
       - name: Run scraper
