@@ -1,24 +1,31 @@
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 import pandas as pd
 import os
 
 URL = "https://www.homes.co.jp/tempo/tokyo/list/"
 
 def scrape():
-    r = requests.get(URL)
-    soup = BeautifulSoup(r.text, "html.parser")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(URL, timeout=60000)
 
-    stores = []
+        # JSで生成されるので待つ
+        page.wait_for_selector(".shopCassette")
 
-    for item in soup.select(".shopCassette"):
-        name = item.select_one(".shopCassette__name")
-        address = item.select_one(".shopCassette__address")
+        items = page.query_selector_all(".shopCassette")
 
-        stores.append({
-            "name": name.get_text(strip=True) if name else "",
-            "address": address.get_text(strip=True) if address else ""
-        })
+        stores = []
+        for item in items:
+            name_el = item.query_selector(".shopCassette__name")
+            addr_el = item.query_selector(".shopCassette__address")
+
+            name = name_el.inner_text().strip() if name_el else ""
+            address = addr_el.inner_text().strip() if addr_el else ""
+
+            stores.append({"name": name, "address": address})
+
+        browser.close()
 
     return pd.DataFrame(stores)
 
