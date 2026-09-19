@@ -1,0 +1,67 @@
+name: Scrape Homes Tokyo Stores
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas
+
+      - name: Run scraper
+        run: |
+          python scraper.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/stores.csv data/diff.csv
+          git commit -m "Update store list" || echo "No changes"
+          git push
+
+      - name: Check diff exists
+        id: check_diff
+        run: |
+          if [ -s data/diff.csv ]; then
+            echo "diff_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "diff_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare mail body
+        if: steps.check_diff.outputs.diff_exists == 'true'
+        id: mail_body
+        run: |
+          echo "差分一覧:" > mail.txt
+          echo "" >> mail.txt
+          cat data/diff.csv >> mail.txt
+          echo "body=$(cat mail.txt)" >> $GITHUB_OUTPUT
+
+      - name: Send diff via email
+        if: steps.check_diff.outputs.diff_exists == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Homes 店舗一覧の差分通知"
+          to: "your-email@example.com"
+          from: "GitHub Actions <your-email@example.com>"
+          body: ${{ steps.mail_body.outputs.body }}
+          attachments: data/diff.csv
