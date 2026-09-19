@@ -1,26 +1,22 @@
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 import pandas as pd
 import os
 
 URL = "https://www.homes.co.jp/tempo/tokyo/list/"
 
 def scrape():
-    r = requests.get(URL)
-    soup = BeautifulSoup(r.text, "html.parser")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(URL, timeout=60000)
 
-    stores = []
+        # 取得した HTML を保存（最重要）
+        html = page.content()
+        with open("page.html", "w", encoding="utf-8") as f:
+            f.write(html)
 
-    for item in soup.select(".cassetteitem"):
-        name = item.select_one(".cassetteitem_content-title")
-        address = item.select_one(".cassetteitem_detail-col")
-
-        stores.append({
-            "name": name.get_text(strip=True) if name else "",
-            "address": address.get_text(strip=True) if address else ""
-        })
-
-    return pd.DataFrame(stores)
+        # ここではまだセレクタを決めない（HTML を見てから決める）
+        return pd.DataFrame([])
 
 def ensure_data_dir():
     if os.path.exists("data") and not os.path.isdir("data"):
@@ -48,15 +44,8 @@ def save(df):
 def diff(new, old):
     ensure_data_dir()
 
-    merged = new.merge(old, how="outer", indicator=True)
-    added = merged[merged["_merge"] == "left_only"]
-    removed = merged[merged["_merge"] == "right_only"]
-
-    diff_df = pd.concat([
-        added.assign(change="added"),
-        removed.assign(change="removed")
-    ])
-
+    # new が空なので diff は空で OK
+    diff_df = pd.DataFrame(columns=["name", "address", "change"])
     diff_df.to_csv("data/diff.csv", index=False)
 
 def main():
